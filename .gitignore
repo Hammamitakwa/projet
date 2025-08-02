@@ -1,0 +1,10 @@
+# Ignore les environnements virtuels Python
+venv/
+.venv/
+env/
+.env/
+
+# Autres fichiers qu’on ignore souvent
+__pycache__/
+*.pyc
+.DS_Store

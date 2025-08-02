@@ -1,0 +1,239 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Variables CSS modernes pour Amen Bank */
+:root {
+  --radius: 0.75rem;
+  
+  /* Palette moderne inspirée d'Amen Bank */
+  --primary: oklch(0.45 0.18 240); /* Bleu moderne plus vibrant */
+  --primary-foreground: oklch(0.98 0 0);
+  --primary-hover: oklch(0.4 0.2 240);
+  
+  --secondary: oklch(0.65 0.18 140); /* Vert moderne plus vibrant */
+  --secondary-foreground: oklch(0.98 0 0);
+  --secondary-hover: oklch(0.6 0.2 140);
+  
+  --accent: oklch(0.7 0.2 30); /* Orange moderne */
+  --accent-foreground: oklch(0.98 0 0);
+  
+  /* Couleurs de surface modernes */
+  --background: oklch(0.99 0 0);
+  --surface: oklch(0.975 0 0);
+  --surface-elevated: oklch(1 0 0);
+  
+  /* Texte avec meilleur contraste */
+  --foreground: oklch(0.15 0 0);
+  --foreground-muted: oklch(0.45 0 0);
+  --foreground-subtle: oklch(0.6 0 0);
+  
+  /* Bordures et séparateurs */
+  --border: oklch(0.9 0 0);
+  --border-subtle: oklch(0.95 0 0);
+  
+  /* États */
+  --success: oklch(0.6 0.15 140);
+  --warning: oklch(0.7 0.15 60);
+  --error: oklch(0.6 0.2 20);
+  --info: var(--primary);
+  
+  /* Ombres modernes */
+  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.05);
+  --shadow: 0 1px 3px 0 oklch(0 0 0 / 0.1), 0 1px 2px -1px oklch(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 0.1), 0 2px 4px -2px oklch(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 0.1), 0 4px 6px -4px oklch(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px oklch(0 0 0 / 0.1), 0 8px 10px -6px oklch(0 0 0 / 0.1);
+  
+  /* Gradients modernes */
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-hover) 100%);
+  --gradient-surface: linear-gradient(135deg, var(--surface) 0%, var(--background) 100%);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-hover: var(--secondary-hover);
+  
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  
+  --color-muted: var(--surface);
+  --color-muted-foreground: var(--foreground-muted);
+  
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--gradient-surface);
+    line-height: 1.6;
+  }
+  
+  /* Styles globaux modernes */
+  .glass-effect {
+    background: oklch(1 0 0 / 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid oklch(1 0 0 / 0.2);
+  }
+  
+  .gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .modern-card {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .modern-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    border-color: var(--border);
+  }
+  
+  .modern-button {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .modern-button:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .modern-button-primary {
+    background: var(--gradient-primary);
+    color: var(--primary-foreground);
+  }
+  
+  .modern-button-secondary {
+    background: var(--surface-elevated);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+  }
+  
+  .modern-button-secondary:hover {
+    background: var(--surface);
+    border-color: var(--primary);
+  }
+  
+  .modern-input {
+    @apply w-full px-4 py-3 rounded-lg border transition-all duration-200;
+    background: var(--surface-elevated);
+    border-color: var(--border);
+    color: var(--foreground);
+  }
+  
+  .modern-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px oklch(from var(--primary) l c h / 0.1);
+  }
+  
+  /* Animations modernes */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  .animate-fade-in-up {
+    animation: fadeInUp 0.4s ease-out;
+  }
+  
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+  
+  /* Responsive design moderne */
+  @media (max-width: 768px) {
+    .modern-button {
+      @apply px-4 py-2.5 text-xs;
+    }
+    
+    .modern-input {
+      @apply px-3 py-2.5 text-sm;
+    }
+  }
+}
+
+/* Mode sombre (optionnel) */
+.dark {
+  --background: oklch(0.1 0 0);
+  --surface: oklch(0.15 0 0);
+  --surface-elevated: oklch(0.2 0 0);
+  --foreground: oklch(0.95 0 0);
+  --foreground-muted: oklch(0.7 0 0);
+  --foreground-subtle: oklch(0.5 0 0);
+  --border: oklch(0.3 0 0);
+  --border-subtle: oklch(0.25 0 0);
+}
+
