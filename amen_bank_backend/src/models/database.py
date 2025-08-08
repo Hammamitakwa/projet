@@ -11,7 +11,7 @@ def get_db_connection():
             host='localhost',
             database='amen_bank_online',
             user='root',
-            password='21329467takwa',  # Mot de passe vide pour le développement local
+            password='21329467takwa@',  # Mot de passe vide pour le développement local
             charset='utf8mb4',
             collation='utf8mb4_unicode_ci'
         )
@@ -33,7 +33,7 @@ class DatabaseConnection:
                 host='localhost',
                 database='amen_bank_online',
                 user='root',
-                password='21329467takwa',  # Mot de passe vide pour le développement local
+                password='21329467takwa@',  # Mot de passe vide pour le développement local
                 charset='utf8mb4',
                 collation='utf8mb4_unicode_ci'
             )
@@ -106,16 +106,16 @@ class Account:
 class Transaction:
     def __init__(self, db_connection):
         self.db = db_connection
-    
+
     def get_by_account_id(self, account_id, limit=50):
-        query = """
+        query = f"""
         SELECT * FROM transactions 
         WHERE account_id = %s 
         ORDER BY transaction_date DESC 
-        LIMIT %s
+        LIMIT {int(limit)}
         """
-        return self.db.execute_query(query, (account_id, limit))
-    
+        return self.db.execute_query(query, (account_id,))
+
     def create(self, account_id, description, transaction_type, amount, debit_credit_indicator, piece_number=None, value_date=None):
         query = """
         INSERT INTO transactions (account_id, description, transaction_type, amount, debit_credit_indicator, piece_number, value_date)
