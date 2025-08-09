@@ -276,4 +276,3 @@ export function ChatInterface({ isOpen, onClose, user }) {
     </div>
   )
 }
-

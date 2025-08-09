@@ -26,9 +26,13 @@ export function Dashboard({ user, onLogout }) {
   const [loading, setLoading] = useState(true)
   const [showBalances, setShowBalances] = useState(true)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [recentTransactions, setRecentTransactions] = useState([])
+  const [selectedAccount, setSelectedAccount] = useState(null)
+  const [showTransactions, setShowTransactions] = useState(false)
 
   useEffect(() => {
     fetchAccounts()
+    fetchRecentTransactions()
   }, [])
 
   const fetchAccounts = async () => {
@@ -42,6 +46,41 @@ export function Dashboard({ user, onLogout }) {
       console.error('Erreur lors du chargement des comptes:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchRecentTransactions = async () => {
+    try {
+      // Récupérer les transactions de tous les comptes
+      const response = await fetch('/api/accounts', {
+        credentials: 'include'
+      })
+      const data = await response.json()
+      
+      if (data.accounts && data.accounts.length > 0) {
+        // Récupérer les transactions du premier compte pour commencer
+        const firstAccount = data.accounts[0]
+        const transResponse = await fetch(`/api/accounts/${firstAccount.account_id}/transactions?limit=10`, {
+          credentials: 'include'
+        })
+        const transData = await transResponse.json()
+        setRecentTransactions(transData.transactions || [])
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des transactions:', error)
+    }
+  }
+
+  const fetchAccountTransactions = async (accountId) => {
+    try {
+      const response = await fetch(`/api/accounts/${accountId}/transactions?limit=20`, {
+        credentials: 'include'
+      })
+      const data = await response.json()
+      return data.transactions || []
+    } catch (error) {
+      console.error('Erreur lors du chargement des transactions du compte:', error)
+      return []
     }
   }
 
@@ -192,8 +231,21 @@ export function Dashboard({ user, onLogout }) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-semibold">---</div>
-                <p className="text-green-100 text-sm mt-1">Aucune transaction récente</p>
+                {recentTransactions.length > 0 ? (
+                  <>
+                    <div className="text-xl font-semibold">
+                      {showBalances ? formatCurrency(recentTransactions[0].amount) : '••••••'}
+                    </div>
+                    <p className="text-green-100 text-sm mt-1">
+                      {recentTransactions[0].description} • {recentTransactions[0].transaction_date}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-xl font-semibold">---</div>
+                    <p className="text-green-100 text-sm mt-1">Aucune transaction récente</p>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -213,6 +265,72 @@ export function Dashboard({ user, onLogout }) {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Section des transactions récentes */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-gray-900">Transactions Récentes</h3>
+            <Button 
+              variant="outline" 
+              className="rounded-full"
+              onClick={() => {
+                if (accounts.length > 0) {
+                  fetchAccountTransactions(accounts[0].account_id).then(transactions => {
+                    setSelectedAccount({...accounts[0], transactions})
+                    setShowTransactions(true)
+                  })
+                }
+              }}
+            >
+              Voir tout
+            </Button>
+          </div>
+
+          <Card className="border-gray-200">
+            <CardContent className="p-6">
+              {recentTransactions.length > 0 ? (
+                <div className="space-y-4">
+                  {recentTransactions.slice(0, 5).map((transaction) => (
+                    <div key={transaction.transaction_id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          transaction.debit_credit_indicator === 'D' 
+                            ? 'bg-red-100 text-red-600' 
+                            : 'bg-green-100 text-green-600'
+                        }`}>
+                          {transaction.debit_credit_indicator === 'D' ? 
+                            <ArrowDownLeft className="h-4 w-4" /> : 
+                            <ArrowUpRight className="h-4 w-4" />
+                          }
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900 text-sm">{transaction.description}</p>
+                          <p className="text-xs text-gray-600">{transaction.transaction_date}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-semibold text-sm ${
+                          transaction.debit_credit_indicator === 'D' 
+                            ? 'text-red-600' 
+                            : 'text-green-600'
+                        }`}>
+                          {transaction.debit_credit_indicator === 'D' ? '-' : '+'}
+                          {showBalances ? formatCurrency(transaction.amount) : '••••••'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">Aucune transaction récente</p>
+                  <p className="text-sm text-gray-500 mt-1">Vos dernières transactions apparaîtront ici</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Liste des comptes */}
@@ -264,6 +382,11 @@ export function Dashboard({ user, onLogout }) {
                       variant="outline" 
                       size="sm" 
                       className="flex-1 rounded-full border-green-200 text-green-700 hover:bg-green-50"
+                      onClick={async () => {
+                        const transactions = await fetchAccountTransactions(account.account_id)
+                        setSelectedAccount({...account, transactions})
+                        setShowTransactions(true)
+                      }}
                     >
                       <TrendingUp className="h-4 w-4 mr-2" />
                       Historique
@@ -274,6 +397,77 @@ export function Dashboard({ user, onLogout }) {
             ))}
           </div>
         </div>
+
+        {/* Modal pour afficher les transactions */}
+        {showTransactions && selectedAccount && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      Historique des transactions
+                    </h3>
+                    <p className="text-gray-600">
+                      {selectedAccount.account_label} • {selectedAccount.account_number}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowTransactions(false)}
+                    className="rounded-full"
+                  >
+                    Fermer
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                {selectedAccount.transactions && selectedAccount.transactions.length > 0 ? (
+                  <div className="space-y-4">
+                    {selectedAccount.transactions.map((transaction) => (
+                      <div key={transaction.transaction_id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            transaction.debit_credit_indicator === 'D' 
+                              ? 'bg-red-100 text-red-600' 
+                              : 'bg-green-100 text-green-600'
+                          }`}>
+                            {transaction.debit_credit_indicator === 'D' ? 
+                              <ArrowDownLeft className="h-5 w-5" /> : 
+                              <ArrowUpRight className="h-5 w-5" />
+                            }
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{transaction.description}</p>
+                            <p className="text-sm text-gray-600">
+                              {transaction.transaction_date} • {transaction.transaction_type}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`font-semibold ${
+                            transaction.debit_credit_indicator === 'D' 
+                              ? 'text-red-600' 
+                              : 'text-green-600'
+                          }`}>
+                            {transaction.debit_credit_indicator === 'D' ? '-' : '+'}
+                            {formatCurrency(transaction.amount)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">Aucune transaction trouvée pour ce compte</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Bouton d'action flottant pour l'assistant */}
         <div className="fixed bottom-6 right-6 z-30">
@@ -295,4 +489,3 @@ export function Dashboard({ user, onLogout }) {
     </div>
   )
 }
-
