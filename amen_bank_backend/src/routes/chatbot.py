@@ -55,8 +55,8 @@ def get_suggestions():
         suggestions = [
             "Quel est le solde de mon compte courant ?",
             "Affiche mes dernières transactions",
-            "Effectue un virement de 1000 TND à Ahmed Ben Salah",
-            "Simule un crédit de 50000 TND sur 7 ans",
+            "Effectue un virement ",
+            "Simule un crédit ",
             "Quels sont vos taux de crédit ?",
             "Aide"
         ]
@@ -107,4 +107,3 @@ def get_faq():
         
     except Exception as e:
         return jsonify({'error': f'Erreur serveur: {str(e)}'}), 500
-

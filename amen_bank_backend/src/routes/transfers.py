@@ -11,32 +11,12 @@ def require_auth():
         return False
     return True
 
-@transfers_bp.route('/transfers', methods=['POST'])
-def create_transfer():
-    if not require_auth():
-        return jsonify({'error': 'Authentification requise'}), 401
-    
+def perform_transfer(user_id, from_account_id, to_account_number, beneficiary_name, amount, is_scheduled=False, schedule_frequency=None):
     try:
-        data = request.get_json()
-        from_account_id = data.get('from_account_id')
-        to_account_number = data.get('to_account_number')
-        beneficiary_name = data.get('beneficiary_name')
-        amount = data.get('amount')
-        is_scheduled = data.get('is_scheduled', False)
-        schedule_frequency = data.get('schedule_frequency')
-        
-        if not all([from_account_id, to_account_number, beneficiary_name, amount]):
-            return jsonify({'error': 'Tous les champs obligatoires doivent être remplis'}), 400
-        
-        if amount <= 0:
-            return jsonify({'error': 'Le montant doit être positif'}), 400
-        
-        user_id = session['user_id']
-        
         # Connexion à la base de données
         db = DatabaseConnection()
         if not db.connect():
-            return jsonify({'error': 'Erreur de connexion à la base de données'}), 500
+            return {"success": False, "error": "Erreur de connexion à la base de données"}
         
         # Vérifier que le compte source appartient à l'utilisateur
         account_model = Account(db)
@@ -44,25 +24,25 @@ def create_transfer():
         
         source_account = None
         for acc in accounts:
-            if acc['account_id'] == from_account_id:
+            if acc["account_id"] == from_account_id:
                 source_account = acc
                 break
         
         if not source_account:
             db.disconnect()
-            return jsonify({'error': 'Compte source non trouvé'}), 404
+            return {"success": False, "error": "Compte source non trouvé ou n'appartient pas à l'utilisateur"}
         
         # Vérifier le solde suffisant
-        if float(source_account['current_balance']) < amount:
+        if float(source_account["current_balance"]) < amount:
             db.disconnect()
-            return jsonify({'error': 'Solde insuffisant'}), 400
+            return {"success": False, "error": "Solde insuffisant"}
         
         # Calculer la prochaine date d'exécution pour les virements permanents
         next_execution_date = None
         if is_scheduled and schedule_frequency:
-            if schedule_frequency == 'MONTHLY':
+            if schedule_frequency == "MONTHLY":
                 next_execution_date = datetime.now() + timedelta(days=30)
-            elif schedule_frequency == 'WEEKLY':
+            elif schedule_frequency == "WEEKLY":
                 next_execution_date = datetime.now() + timedelta(days=7)
         
         # Créer le virement
@@ -74,7 +54,7 @@ def create_transfer():
         
         if transfer_id:
             # Mettre à jour le solde du compte source
-            new_balance = float(source_account['current_balance']) - amount
+            new_balance = float(source_account["current_balance"]) - amount
             account_model.update_balance(from_account_id, new_balance)
             
             # Créer une transaction pour le débit
@@ -92,17 +72,46 @@ def create_transfer():
             
             db.disconnect()
             
-            return jsonify({
-                'message': 'Virement effectué avec succès',
-                'transfer_id': transfer_id,
-                'new_balance': round(new_balance, 3)
-            }), 200
+            return {
+                "success": True,
+                "message": "Virement effectué avec succès",
+                "transfer_id": transfer_id,
+                "new_balance": round(new_balance, 3)
+            }
         else:
             db.disconnect()
-            return jsonify({'error': 'Erreur lors de la création du virement'}), 500
+            return {"success": False, "error": "Erreur lors de la création du virement"}
             
     except Exception as e:
-        return jsonify({'error': f'Erreur serveur: {str(e)}'}), 500
+        return {"success": False, "error": f"Erreur serveur: {str(e)}"}
+
+@transfers_bp.route("/transfers", methods=["POST"])
+def create_transfer():
+    if not require_auth():
+        return jsonify({"error": "Authentification requise"}), 401
+    
+    data = request.get_json()
+    from_account_id = data.get("from_account_id")
+    to_account_number = data.get("to_account_number")
+    beneficiary_name = data.get("beneficiary_name")
+    amount = data.get("amount")
+    is_scheduled = data.get("is_scheduled", False)
+    schedule_frequency = data.get("schedule_frequency")
+    
+    if not all([from_account_id, to_account_number, beneficiary_name, amount]):
+        return jsonify({"error": "Tous les champs obligatoires doivent être remplis"}), 400
+    
+    if amount <= 0:
+        return jsonify({"error": "Le montant doit être positif"}), 400
+    
+    user_id = session["user_id"]
+    
+    result = perform_transfer(user_id, from_account_id, to_account_number, beneficiary_name, amount, is_scheduled, schedule_frequency)
+    
+    if result["success"]:
+        return jsonify(result), 200
+    else:
+        return jsonify({"error": result["error"]}), 500
 
 @transfers_bp.route('/transfers', methods=['GET'])
 def get_transfers():
@@ -222,4 +231,3 @@ def add_beneficiary():
             
     except Exception as e:
         return jsonify({'error': f'Erreur serveur: {str(e)}'}), 500
-

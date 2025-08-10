@@ -9,27 +9,17 @@ def require_auth():
         return False
     return True
 
-@loans_bp.route('/loans/simulate', methods=['POST'])
-def simulate_loan():
-    if not require_auth():
-        return jsonify({'error': 'Authentification requise'}), 401
-    
+def perform_loan_simulation(amount, years, annual_rate=0.07):
     try:
-        data = request.get_json()
-        amount = data.get('amount')
-        years = data.get('years')
-        annual_rate = data.get('annual_rate', 0.07)  # Taux par défaut de 7%
-        
         if not amount or not years:
-            return jsonify({'error': 'Montant et durée sont obligatoires'}), 400
+            return {"success": False, "error": "Montant et durée sont obligatoires"}
         
         if amount <= 0 or years <= 0:
-            return jsonify({'error': 'Montant et durée doivent être positifs'}), 400
+            return {"success": False, "error": "Montant et durée doivent être positifs"}
         
-        # Connexion à la base de données pour utiliser la méthode de calcul
         db = DatabaseConnection()
         if not db.connect():
-            return jsonify({'error': 'Erreur de connexion à la base de données'}), 500
+            return {"success": False, "error": "Erreur de connexion à la base de données"}
         
         loan_model = LoanApplication(db)
         monthly_payment = loan_model.calculate_monthly_payment(amount, years, annual_rate)
@@ -39,43 +29,50 @@ def simulate_loan():
         total_payment = monthly_payment * years * 12
         total_interest = total_payment - amount
         
-        return jsonify({
-            'simulation': {
-                'requested_amount': amount,
-                'loan_term_years': years,
-                'annual_rate': annual_rate * 100,  # Convertir en pourcentage
-                'monthly_payment': round(monthly_payment, 3),
-                'total_payment': round(total_payment, 3),
-                'total_interest': round(total_interest, 3),
-                'currency': 'TND'
+        return {
+            "success": True,
+            "simulation": {
+                "requested_amount": amount,
+                "loan_term_years": years,
+                "annual_rate": annual_rate * 100,
+                "monthly_payment": round(monthly_payment, 3),
+                "total_payment": round(total_payment, 3),
+                "total_interest": round(total_interest, 3),
+                "currency": "TND"
             }
-        }), 200
+        }
         
     except Exception as e:
-        return jsonify({'error': f'Erreur serveur: {str(e)}'}), 500
+        return {"success": False, "error": f"Erreur serveur: {str(e)}"}
 
-@loans_bp.route('/loans/apply', methods=['POST'])
-def apply_for_loan():
+@loans_bp.route("/loans/simulate", methods=["POST"])
+def simulate_loan():
     if not require_auth():
-        return jsonify({'error': 'Authentification requise'}), 401
+        return jsonify({"error": "Authentification requise"}), 401
     
+    data = request.get_json()
+    amount = data.get("amount")
+    years = data.get("years")
+    annual_rate = data.get("annual_rate", 0.07)
+    
+    result = perform_loan_simulation(amount, years, annual_rate)
+    
+    if result["success"]:
+        return jsonify(result), 200
+    else:
+        return jsonify({"error": result["error"]}), 500
+
+def perform_loan_application(user_id, amount, years):
     try:
-        data = request.get_json()
-        amount = data.get('amount')
-        years = data.get('years')
-        
         if not amount or not years:
-            return jsonify({'error': 'Montant et durée sont obligatoires'}), 400
+            return {"success": False, "error": "Montant et durée sont obligatoires"}
         
         if amount <= 0 or years <= 0:
-            return jsonify({'error': 'Montant et durée doivent être positifs'}), 400
+            return {"success": False, "error": "Montant et durée doivent être positifs"}
         
-        user_id = session['user_id']
-        
-        # Connexion à la base de données
         db = DatabaseConnection()
         if not db.connect():
-            return jsonify({'error': 'Erreur de connexion à la base de données'}), 500
+            return {"success": False, "error": "Erreur de connexion à la base de données"}
         
         loan_model = LoanApplication(db)
         
@@ -88,17 +85,36 @@ def apply_for_loan():
         db.disconnect()
         
         if application_id:
-            return jsonify({
-                'message': 'Demande de crédit soumise avec succès',
-                'application_id': application_id,
-                'monthly_payment_simulation': round(monthly_payment, 3),
-                'status': 'PENDING'
-            }), 201
+            return {
+                "success": True,
+                "message": "Demande de crédit soumise avec succès",
+                "application_id": application_id,
+                "monthly_payment_simulation": round(monthly_payment, 3),
+                "status": "PENDING"
+            }
         else:
-            return jsonify({'error': 'Erreur lors de la soumission de la demande'}), 500
+            return {"success": False, "error": "Erreur lors de la soumission de la demande"}
             
     except Exception as e:
-        return jsonify({'error': f'Erreur serveur: {str(e)}'}), 500
+        return {"success": False, "error": f"Erreur serveur: {str(e)}"}
+
+@loans_bp.route("/loans/apply", methods=["POST"])
+def apply_for_loan():
+    if not require_auth():
+        return jsonify({"error": "Authentification requise"}), 401
+    
+    data = request.get_json()
+    amount = data.get("amount")
+    years = data.get("years")
+    
+    user_id = session["user_id"]
+    
+    result = perform_loan_application(user_id, amount, years)
+    
+    if result["success"]:
+        return jsonify(result), 201
+    else:
+        return jsonify({"error": result["error"]}), 500
 
 @loans_bp.route('/loans/applications', methods=['GET'])
 def get_loan_applications():
@@ -173,4 +189,3 @@ def get_loan_rates():
         
     except Exception as e:
         return jsonify({'error': f'Erreur serveur: {str(e)}'}), 500
-
